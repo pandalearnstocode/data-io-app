@@ -127,6 +127,13 @@ jobs:
         with:
           python-version: '3.8'
           architecture: 'x64'
+      - name: Make envfile
+        uses: SpicyPizza/create-envfile@v1
+        with:
+          envkey_AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          envkey_AZURE_STORAGE_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
+          directory: data
+          file_name: .env
       - name: Run a multi-line script
         run: |
           pip install -r requirements.txt
@@ -190,3 +197,4 @@ __Notes:__ If you want to have multiple version of the same file then in that ca
 * https://stackoverflow.com/questions/26124281/convert-a-str-to-path-type
 * https://stackoverflow.com/questions/3207219/how-do-i-list-all-files-of-a-directory
 * https://github.com/Azure/azure-storage-python/issues/649
+* https://github.com/SpicyPizza/create-envfile
