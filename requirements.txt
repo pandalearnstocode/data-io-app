@@ -1,0 +1,7 @@
+azure-storage-blob
+pandas
+typer
+typer-cli
+joblib
+loguru
+python-dotenv
