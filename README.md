@@ -106,6 +106,39 @@ typer data_io_app.py run download_all
 typer data_io_app.py run uncompress_all
 ```
 
+## 7. data_io_app in github actions
+
+```yml
+name: CI
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - name: Run a multi-line script
+        run: |
+          pip install -r requirements.txt
+          cd data
+          typer data_io_app.py run download_all
+          typer data_io_app.py run uncompress_all
+          rm pngs_files.zip
+          typer data_io_app.py run compress_all
+          mv pngs_files.zip pngs_files_gh_actions.zip
+          typer data_io_app.py run upload_all
+```
+
 
 ### Data folder
 
