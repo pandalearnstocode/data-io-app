@@ -1,5 +1,11 @@
 # data-io-app
 
+## Sample repository:
+
+https://github.com/pandalearnstocode/data-io-app
+
+## Creating Azure resources
+
 ```bash
 rg_name=azstoragetestrg
 resource_location=eastus
