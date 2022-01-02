@@ -57,6 +57,7 @@ AZURE_STORAGE_CONTAINER=databackup
 
 ```bash
 pip install azure-storage-blob loguru typer typer-cli
+pip install papermill
 ```
 ## Functionality:
 
