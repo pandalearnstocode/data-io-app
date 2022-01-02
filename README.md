@@ -64,6 +64,7 @@ Lets imaging this scenario you have some data in blob and you need the data from
 #### 1. Check folder location
 
 ```bash
+cd data
 typer data_io_app.py run show_path
 ```
 
@@ -74,7 +75,6 @@ pip uninstall -y azure-common azure-storage azure-nspkg azure-storage-blob
 pip install azure-storage-blob --upgrade
 pip install azure-common --upgrade
 ```
-
 
 #### 2. Download files from blob container to a folder
 
