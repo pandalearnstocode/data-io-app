@@ -1,11 +1,12 @@
-import typer
+import glob
 import os
-from typing import Tuple
+import shutil
+from typing import Optional, Tuple
+
+import typer
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
 from loguru import logger
-import shutil
-import glob
 
 
 def zip_local_directory(base_path: str, dir_name: str) -> Tuple[str, str]:
@@ -14,14 +15,24 @@ def zip_local_directory(base_path: str, dir_name: str) -> Tuple[str, str]:
     """
     zip_file_name = dir_name
     dir_name = os.path.join(base_path, dir_name)
-    logger.info("\nZipping directory: \n\t" + dir_name + "\n\t to file: \n\t" + zip_file_name)
+    logger.info(
+        "\nZipping directory: \n\t"
+        + dir_name
+        + "\n\t to file: \n\t"
+        + zip_file_name
+    )
     shutil.make_archive(zip_file_name, "zip", dir_name)
     return str(dir_name) + ".zip", zip_file_name + ".zip"
 
 
 def unzip_file(filename, extract_dir):
     """Unzip the file"""
-    logger.info("\nUnzipping file: \n\t" + filename + "\n\t to directory: \n\t" + extract_dir)
+    logger.info(
+        "\nUnzipping file: \n\t"
+        + filename
+        + "\n\t to directory: \n\t"
+        + extract_dir
+    )
     shutil.unpack_archive(filename, extract_dir)
 
 
@@ -71,20 +82,35 @@ def unzip_all_files_in_dir():
     """Unzip all the files"""
     path, filename, full_path = know_script_path()
     all_zipped_file_paths = glob.glob(f"{path}/*.zip")
-    all_zipped_file_names = [str(os.path.basename(file)) for file in all_zipped_file_paths]
-    for file_name, folder_name in zip(all_zipped_file_paths, all_zipped_file_names):
+    all_zipped_file_names = [
+        str(os.path.basename(file)) for file in all_zipped_file_paths
+    ]
+    for file_name, folder_name in zip(
+        all_zipped_file_paths, all_zipped_file_names
+    ):
         unzip_file(file_name, str(folder_name).replace(".zip", ""))
 
 
 @app.command("download_all")
-def download_all_files_from_container_to_local() -> None:
-    """Download all the files from a container to local"""
+def download_all_files_from_container_to_local(
+    path: Optional[str] = None,
+) -> None:
+    """
+    Download all the files from a container to local
+
+    typer data_io_app.py run download_all --path
+
+    """
     load_dotenv()
     connect_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
     container_name = str(os.getenv("AZURE_STORAGE_CONTAINER"))
     blob_service_client = BlobServiceClient.from_connection_string(connect_str)
     container_client = blob_service_client.get_container_client(container_name)
-    path, filename, full_path = know_script_path()
+    if path:
+        if not os.path.exists(str(path)):
+            raise ValueError("\nThe provided path does not exist\n")
+    else:
+        path, filename, full_path = know_script_path()
     logger.info("\nListing blobs...")
     blob_list = container_client.list_blobs()
     for blob in blob_list:
@@ -92,30 +118,54 @@ def download_all_files_from_container_to_local() -> None:
         download_file_path = os.path.join(path, blob.name)
         logger.info("\nDownloading blob to \n\t" + download_file_path)
         with open(download_file_path, "wb") as download_file:
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob.name)
+            blob_client = blob_service_client.get_blob_client(
+                container=container_name, blob=blob.name
+            )
             download_file.write(blob_client.download_blob().readall())
 
 
 @app.command("upload_all")
-def upload_all_from_local() -> None:
+def upload_all_from_local(path: Optional[str] = None) -> None:
     """
     Upload all the files from local to blob
     """
     load_dotenv()
     connect_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
     container_name = str(os.getenv("AZURE_STORAGE_CONTAINER"))
+    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
     logger.info("\nUploading files to blob...")
     logger.info("\n\tConnecting to blob storage...")
     logger.info("\n\t\tUploading to container: " + container_name)
-    path, filename, full_path = know_script_path()
-    all_zipped_file_paths = glob.glob(f"{path}/*.zip")
-    all_zipped_file_names = [str(os.path.basename(file)) for file in all_zipped_file_paths]
-    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
-    for zipped_file_path, zipped_file_name in zip(all_zipped_file_paths, all_zipped_file_names):
+    if path:
+        if not os.path.exists(str(path)):
+            raise ValueError("\nThe provided path does not exist\n")
+        dir_name = str(path).split("\\")[-1]
+        base_path = os.path.abspath(os.path.join(os.path.dirname(path)))
+        zipped_file_path, zipped_file_name = zip_local_directory(
+            base_path, dir_name
+        )
         with open(os.path.normpath(zipped_file_path), "rb") as data:
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=zipped_file_name)
+            blob_client = blob_service_client.get_blob_client(
+                container=container_name, blob=zipped_file_name
+            )
             blob_client.upload_blob(data)
             logger.info("\tUploaded blob: " + zipped_file_name)
+    else:
+        path, filename, full_path = know_script_path()
+        all_zipped_file_paths = glob.glob(f"{path}/*.zip")
+        all_zipped_file_names = [
+            str(os.path.basename(file)) for file in all_zipped_file_paths
+        ]
+
+        for zipped_file_path, zipped_file_name in zip(
+            all_zipped_file_paths, all_zipped_file_names
+        ):
+            with open(os.path.normpath(zipped_file_path), "rb") as data:
+                blob_client = blob_service_client.get_blob_client(
+                    container=container_name, blob=zipped_file_name
+                )
+                blob_client.upload_blob(data)
+                logger.info("\tUploaded blob: " + zipped_file_name)
 
 
 if __name__ == "__main__":
